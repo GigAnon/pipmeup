@@ -143,6 +143,49 @@ PySPX                    # [SDIST] sdist only, C compilation required
 pywin32; sys_platform == "win32"   # [PLAT] Windows only
 wxpython                 # [SDIST] no Linux wheel on PyPI: very heavy GTK build (Windows has wheels)
 
+# --- Added after review ---
+# Build tooling for the offline side
+build
+hatchling
+flit-core
+poetry-core
+setuptools-scm
+scikit-build-core
+meson-python
+cffi
+virtualenv
+uv
+tox
+nox
+# Quality and tests
+ruff
+mypy
+pytest-cov
+pytest-mock
+pytest-timeout
+hypothesis
+bandit
+# Embedded
+pyusb
+pyftdi
+intelhex
+construct
+# Docs-as-code and documents
+sphinx
+breathe
+docutils
+Pygments
+markdown
+pypdf
+reportlab
+xlsxwriter
+python-docx
+# Misc
+requests
+pexpect
+typing-extensions
+protobuf
+
 # --- Disabled in the original script ---
 # imgui[full]   # abandoned project (replaced by imgui-bundle)
 # PySide2       # superseded by PySide6
