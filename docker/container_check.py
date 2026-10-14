@@ -49,6 +49,11 @@ def canon(name: str) -> str:
     return re.sub(r"[-_.]+", "-", name).lower()
 
 
+def dist_name(spec: str) -> str:
+    """Distribution name of a requirement string such as 'setuptools<82'."""
+    return re.match(r"[A-Za-z0-9][A-Za-z0-9._-]*", spec).group(0)
+
+
 def run(cmd: list[str], timeout: int | None = None) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
@@ -87,7 +92,8 @@ def main() -> int:
     report["verify_ok"] = verify.returncode == 0
 
     # 2. per-root install -------------------------------------------------
-    roots = [r for r in roots_file.read_text().split() if canon(r) not in SKIP]
+    roots = [r.strip() for r in roots_file.read_text().splitlines()
+             if r.strip() and canon(dist_name(r)) not in SKIP]
     print(f"== 2/5 installing {len(roots)} root(s), one at a time")
     py = make_venv(VENV_ROOTS)
     failures: dict[str, str] = {}
@@ -152,7 +158,7 @@ print(json.dumps({"mods": sorted(m for m in mods if m.isidentifier())}))
     for root in roots:
         if root in failures:
             continue
-        found = run([str(py), "-c", probe, root])
+        found = run([str(py), "-c", probe, dist_name(root)])
         try:
             mods = json.loads(found.stdout)["mods"]
         except (json.JSONDecodeError, KeyError):

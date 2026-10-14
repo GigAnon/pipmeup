@@ -25,8 +25,8 @@ python3 builder/build_bundle.py --target debian13     # one target
 python3 builder/build_bundle.py --archive build/dist/bundle.tar.gz --split-size 4G
 ```
 
-Targets: `debian12` (Python 3.11, glibc 2.36), `debian13` (Python 3.13, glibc 2.41),
-`win_amd64:3.13`, or `<profile>:<pyver>[:<glibc minor>]`. macOS is not supported.
+Targets: `py314` (Python 3.14.7), `debian12` (Python 3.11, glibc 2.36), `debian13`
+(Python 3.13, glibc 2.41), `win_amd64:3.14.7`, or `<profile>:<pyver>[:<glibc minor>]`. macOS is not supported.
 
 How it differs from `pip download --platform`: dependencies are resolved by the
 builder against a synthetic marker environment for each target, so
@@ -63,14 +63,18 @@ pip ignore `--index-url`. Network isolation comes from `docker run --network non
 python3 -m pytest tests
 ```
 
-## Known issues
+## Notes
 
-* **pendulum 2.1.2 on Python 3.13** cannot be built from its sdist: its
-  `build.py` imports `distutils` (removed in 3.12) and poetry-core runs it in the
-  target venv, outside the isolated build environment. It builds with
-  setuptools installed in the venv plus `--no-build-isolation`. A prebuilt-wheel
-  step (build in the Docker image, add the wheel to the bundle) is the planned fix.
-  The pin comes from `asciidocbuilder` requiring `pendulum<3`.
-* `inflate` and `hdlcontroller` import `pkg_resources`, which the newest
-  setuptools no longer ships; they install but fail to import unless an older
-  setuptools is pinned.
+* **pkg_resources**: removed from setuptools in 82 and not published as a separate
+  distribution, so `setuptools<82` is pinned in `requirements/packages.txt`
+  (`inflate` and `hdlcontroller` import it).
+* **wxpython** has no Linux wheel on PyPI (only Windows and macOS). The Linux
+  wheels published at extras.wxpython.org cover Debian up to 11 and Ubuntu up to
+  24.04, not Debian 12/13, so Linux targets build the sdist (heavy GTK build;
+  `docker/run_test.sh -s wxpython` skips it).
+* **Targets**: `py314` is Python 3.14.7 on glibc 2.36 (the conservative floor,
+  usable on Debian 12 and 13), tested in the `python:3.14-bookworm` image.
+* Dropped `asciidocbuilder`: it pinned `pendulum<3`, and pendulum 2.x cannot be
+  built on Python >= 3.12 (its build script imports `distutils`, outside the
+  isolated build environment). `pendulum` itself stays as a root and now
+  resolves to 3.x, which ships wheels.

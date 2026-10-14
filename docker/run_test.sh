@@ -5,7 +5,7 @@
 #
 #   -b  bundle directory (default: build/bundle)
 #   -s  comma-separated distributions to skip, e.g. wxpython (very long build)
-#   TARGET: debian12 debian13 (default: every Debian target present in the bundle)
+#   TARGET: py314 debian12 debian13 (default: every one of them present in the bundle)
 #
 # The image is built WITH network (apt), then the test runs WITHOUT it.
 set -euo pipefail
@@ -23,7 +23,8 @@ while getopts "b:s:" opt; do
 done
 shift $((OPTIND - 1))
 
-declare -A base=( [debian12]=debian:12 [debian13]=debian:13 )
+# py314: the official Python image on Debian 12 (glibc 2.36), Python 3.14.x
+declare -A base=( [py314]=python:3.14-bookworm [debian12]=debian:12 [debian13]=debian:13 )
 
 targets=("$@")
 if [ ${#targets[@]} -eq 0 ]; then

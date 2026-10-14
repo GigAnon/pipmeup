@@ -88,9 +88,12 @@ PROFILES: dict[str, dict[str, Any]] = {
 PRESETS: dict[str, str] = {
     "debian12": "linux_x86_64:3.11:36",
     "debian13": "linux_x86_64:3.13:41",
+    # Main Python target (python.org / docker `python:3.14` build). glibc 2.36
+    # (Debian 12) is the conservative floor: the result also works on Debian 13.
+    "py314": "linux_x86_64:3.14.7:36",
 }
 
-DEFAULT_TARGETS = ["debian12", "debian13", "win_amd64:3.13"]
+DEFAULT_TARGETS = ["py314", "debian12", "debian13", "win_amd64:3.14.7"]
 DEFAULT_GLIBC_MINOR = 36
 
 

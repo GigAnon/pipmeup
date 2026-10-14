@@ -30,3 +30,11 @@ def test_macos_is_gone():
 def test_invalid_specs(spec):
     with pytest.raises(ValueError):
         make_target(spec)
+
+
+def test_py314_preset():
+    t = make_target("py314")
+    assert t.python_version == (3, 14)
+    assert t.python_full_version == "3.14.7"
+    assert t.platforms[0] == "manylinux_2_36_x86_64"
+    assert t.can_build

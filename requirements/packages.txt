@@ -14,14 +14,14 @@
 #   [OLD]    obsolete or unmaintained
 #
 # Pruned in the cleanup: dilithium and pqcryptography (absent from PyPI),
-# ordereddict and pathlib2 (Python 2 relics, replaced by the standard library).
+# ordereddict and pathlib2 (Python 2 relics, replaced by the standard library),
+# asciidocbuilder (it pinned pendulum<3, which cannot be built on Python >= 3.12).
 
 # --- No reservations ---
 adparser
 aenum
 argcomplete
 asciidoc3
-asciidocbuilder
 Automat
 beautifulsoup4
 bitarray
@@ -114,7 +114,7 @@ requests-oauthlib
 rpds-py
 scapy
 Scrapy
-setuptools
+setuptools<82               # last line with pkg_resources (removed in 82, no standalone dist); inflate/hdlcontroller import it
 smmap
 subprocess-tee
 tabulate
@@ -138,7 +138,7 @@ fuckit                   # [SDIST][OLD] sdist only, joke package
 inflate                  # [SDIST][OLD] sdist only, unmaintained -- check whether inflate64 was meant
 multi-key-dict           # [SDIST]
 netifaces                # [SDIST][OLD] sdist only, unmaintained -- consider psutil.net_if_addrs()
-pendulum                 # [SDIST] resolved to 2.x by a transitive constraint, no py3.13 wheel
+pendulum
 PySPX                    # [SDIST] sdist only, C compilation required
 pywin32; sys_platform == "win32"   # [PLAT] Windows only
 wxpython                 # [SDIST] no Linux wheel on PyPI: very heavy GTK build (Windows has wheels)

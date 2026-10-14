@@ -46,10 +46,15 @@ def write_lockfiles(bundle_dir: Path, resolutions: list[Resolution],
 
         # Root distributions actually present on this target (after markers and
         # availability); used by the install test.
-        root_names = sorted({canonicalize_name(r.name) for r in roots}
-                            & set(resolution.pins))
+        # Written as requirements (name, extras, specifier; markers dropped) so
+        # that constraints such as `setuptools<82` are honoured by the test.
+        root_specs = sorted({
+            f"{r.name}{'[' + ','.join(sorted(r.extras)) + ']' if r.extras else ''}{r.specifier}"
+            for r in roots
+            if canonicalize_name(r.name) in resolution.pins
+        }, key=str.lower)
         (locks_dir / f"roots-{ident}.txt").write_text(
-            "\n".join(root_names) + "\n", encoding="utf-8")
+            "\n".join(root_specs) + "\n", encoding="utf-8")
 
         # Build environments: informational, one section per sdist.
         build_lines = [f"# build environments for target {ident}",
