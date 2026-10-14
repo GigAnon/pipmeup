@@ -1,0 +1,147 @@
+# Paquets racines du miroir PyPI local.
+# Genere depuis main.py : 133 entrees -> 127 uniques apres normalisation PEP 503.
+# Doublons supprimes : packaging, paramiko, psutil, pycryptodome, scapy, setuptools.
+#
+# Les dependances transitives ne figurent PAS ici : elles sont resolues
+# par pypi_mirror.py, par cible, avec evaluation correcte des marqueurs.
+#
+# Legende des annotations :
+#   [ABSENT] paquet inexistant sur PyPI -- a corriger
+#   [SDIST]  aucune wheel : compilation requise a l'installation
+#   [PLAT]   restreint a une plateforme
+#   [VIEUX]  obsolete ou non maintenu
+
+# --- Paquets sans reserve ---
+adparser
+aenum
+argcomplete
+asciidoc3
+asciidocbuilder
+Automat
+beautifulsoup4
+bitarray
+black
+certifi
+chardet
+colorama
+constantly
+coverage
+crccheck
+cryptography
+cycler
+cython
+dash
+decorator
+Deprecated
+docx2pdf
+docxtpl
+ecdsa
+enforce-typing
+et-xmlfile
+fabric
+Faker
+filelock
+fonttools
+gcovr
+GitPython
+glfw
+hdlcontroller
+hidapi
+hyperlink
+imgui-bundle
+incremental
+iniconfig
+invoke
+isodate
+isort
+Jinja2
+jmespath
+jsonschema
+kiwisolver
+libcst
+lief
+lxml
+mapfile-parser
+MarkupSafe
+matplotlib
+meson
+miniircd
+ndjson
+networkx
+numpy
+opencv-python
+openpyxl
+packaging
+pandas
+paramiko
+Pillow
+pip
+platformdirs
+plotly
+prompt-toolkit
+Protego
+psutil
+psygnal
+py7zr
+pyasn1
+pycparser
+pycryptodome
+pycryptodomex
+pydantic
+pyelftools
+pygdbmi
+pyinstaller
+pylfsr
+pylint
+pyOpenSSL
+pyserial
+PySide6
+pytest
+pytest-subtests
+pytest-xdist
+python-dateutil
+python-jenkins
+python_statemachine
+pytz
+PyYAML
+queuelib
+requests-oauthlib
+rpds-py
+scapy
+Scrapy
+setuptools
+smmap
+subprocess-tee
+tabulate
+tcms.api
+telnetlib3
+tenacity
+texttable
+tqdm
+Twisted
+unittest-parallel
+urllib3
+wheel
+zeep
+
+# --- Paquets a examiner ---
+atomicwrites             # [SDIST][VIEUX] sdist seul, non maintenu
+bitfields                # [SDIST] sdist seul -- verifier si bitstruct/ctypes etait vise
+crcmod                   # [SDIST][VIEUX] sdist seul, non maintenu -- crccheck couvre le meme besoin
+dilithium                # [ABSENT] ABSENT de PyPI -- nom a corriger ou paquet inexistant
+fastecdsa                # [PLAT][SDIST] aucune wheel Windows (dependance GMP)
+fuckit                   # [SDIST][VIEUX] sdist seul, paquet humoristique
+inflate                  # [SDIST][VIEUX] sdist seul, non maintenu -- verifier si inflate64 etait vise
+multi-key-dict           # [SDIST] 
+netifaces                # [SDIST][VIEUX] sdist seul, non maintenu -- envisager psutil.net_if_addrs()
+ordereddict              # [SDIST][VIEUX] relique Python 2 (collections.OrderedDict depuis 2.7)
+pathlib2                 # [VIEUX] obsolete : pathlib est dans la stdlib
+pendulum                 # [SDIST] resolu en 2.x par contrainte transitive, sans wheel py3.13
+pqcryptography           # [ABSENT] tire liboqs, ABSENT de PyPI : installation vouee a l'echec
+PySPX                    # [SDIST] sdist seul, compilation C requise
+pywin32                  # [PLAT] Windows uniquement
+wxpython                 # [PLAT][SDIST] aucune wheel Linux : compilation lourde (GTK)
+
+# --- Desactives dans le script d'origine ---
+# imgui[full]   # projet abandonne (imgui-bundle le remplace)
+# PySide2       # supplante par PySide6
