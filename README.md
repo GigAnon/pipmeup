@@ -20,10 +20,19 @@ contains nothing that needs the builder.
 
 ```sh
 pip install packaging pytest
-python3 builder/build_bundle.py                       # all default targets -> build/bundle
+python3 builder/build_bundle.py                       # -> build/bundle/ and build/dist/pipmeup-bundle-<date>.tar.gz
 python3 builder/build_bundle.py --target debian13     # one target
-python3 builder/build_bundle.py --archive build/dist/bundle.tar.gz --split-size 4G
+python3 builder/build_bundle.py --format zip          # tar.gz (default), tgz, tar.xz, tar.bz2, tar, zip
+python3 builder/build_bundle.py --archive out/mine.tar.xz   # explicit path; format follows the extension
+python3 builder/build_bundle.py --split-size 4G              # split the archive for media
+python3 builder/build_bundle.py --no-archive                # bundle directory only
 ```
+
+The archive is reproducible (same input, same bytes) and carries no information
+about the build machine: owner and group are stripped (ids 0, empty names), there
+are no timestamps, and permissions are fixed (0644, 0755 for the `.py` tool). Next to it
+the build writes `<name>.SHA256SUMS` and `<name>.RESTORE.txt`. Extraction on the isolated side:
+`tar xzf <name>.tar.gz` (or `unzip`), then `cd <name> && python3 mirrortool.py verify`.
 
 Targets: presets `py314` (Python 3.14.7), `debian12` (Python 3.11), `debian13`
 (Python 3.13), plus `win_amd64:3.14.7` by default. Anything else is

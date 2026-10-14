@@ -14,7 +14,8 @@ from pathlib import Path
 
 from packaging.requirements import InvalidRequirement, Requirement
 
-from .archive import create_archive, human_size, parse_size
+from .archive import (FORMAT_ALIASES, FORMATS, create_archive, format_from_name,
+                      human_size, normalise_format, parse_size, strip_extension)
 from .client import PyPIClient, RemoteFile
 from .download import download
 from .locks import write_lockfiles
@@ -142,7 +143,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     group = parser.add_argument_group("archiving")
     group.add_argument("--archive", type=Path, default=None, metavar="PATH",
-                       help="produce a tar.gz archive (e.g. build/dist/bundle.tar.gz)")
+                       help="archive path; the format follows its extension "
+                            "(default: build/dist/pipmeup-bundle-<date>.<format>)")
+    group.add_argument("--format", default=None, metavar="FORMAT",
+                       help="archive format: " + ", ".join(FORMATS + tuple(FORMAT_ALIASES))
+                            + " (default: from --archive's extension, else tar.gz)")
+    group.add_argument("--no-archive", action="store_true",
+                       help="only assemble the bundle directory, do not archive it")
     group.add_argument("--archive-only", action="store_true",
                        help="archive the existing bundle without resolving anything")
     group.add_argument("--split-size", default=None, metavar="SIZE",
@@ -152,15 +159,32 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _archive_destination(bundle_dir: Path, args: argparse.Namespace) -> tuple[Path, str]:
+    """(destination path, format) from --archive / --format."""
+    explicit = normalise_format(args.format) if args.format else None
+    if args.archive is not None:
+        implied = format_from_name(args.archive.name)
+        if explicit and implied and explicit != implied:
+            raise ValueError(f"--format {args.format} contradicts the extension of {args.archive}")
+        fmt = explicit or implied or "tar.gz"
+        if format_from_name(args.archive.name) is None:
+            return args.archive.with_name(args.archive.name + "." + fmt), fmt
+        return args.archive, fmt
+    fmt = explicit or "tar.gz"
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d")
+    return bundle_dir.parent / "dist" / f"pipmeup-bundle-{stamp}.{fmt}", fmt
+
+
 def _archive(bundle_dir: Path, args: argparse.Namespace, split_size: int | None) -> None:
-    destination = args.archive or (bundle_dir.parent / "dist" / f"{bundle_dir.name}.tar.gz")
-    parts = create_archive(bundle_dir, destination.resolve(), split_size, args.split_mode)
+    destination, fmt = _archive_destination(bundle_dir, args)
+    parts = create_archive(bundle_dir, destination.resolve(), split_size, args.split_mode, fmt)
     total = sum(p.stat().st_size for p in parts)
     label = "independent volume(s)" if args.split_mode == "volumes" else "chunk(s)"
-    print(f"\n  archive   : {len(parts)} {label}, {human_size(total)} total")
+    print(f"\n  archive   : {len(parts)} {label} ({fmt}), {human_size(total)} total")
     for part in parts:
         print(f"      {part.name}  ({human_size(part.stat().st_size)})")
-    print(f"      SHA256SUMS and RESTORE.txt in {parts[0].parent}")
+    stem = strip_extension(destination.name)
+    print(f"      {stem}.SHA256SUMS and {stem}.RESTORE.txt in {parts[0].parent}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -176,9 +200,15 @@ def main(argv: list[str] | None = None) -> int:
         if split_size <= 0:
             print("error: --split-size must be strictly positive", file=sys.stderr)
             return 2
-        if args.archive is None and not args.archive_only:
-            print("error: --split-size has no effect without --archive", file=sys.stderr)
+        if args.no_archive:
+            print("error: --split-size has no effect with --no-archive", file=sys.stderr)
             return 2
+
+    try:
+        _archive_destination(args.output, args)  # validate --format / --archive early
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
 
     bundle_dir: Path = args.output.resolve()
 
@@ -316,7 +346,14 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  report    : {report_path}")
     print(f"  Cleanup   : python mirrortool.py gc --keep-last 2   (run from inside the bundle)")
 
-    if args.archive is not None:
+    if args.no_archive:
+        pass
+    elif args.resolve_only:
+        print("\n  archive   : skipped (--resolve-only: nothing was downloaded)")
+    elif failures:
+        print("\n  archive   : skipped, the bundle is incomplete (download failures above)",
+              file=sys.stderr)
+    else:
         _archive(bundle_dir, args, split_size)
 
     has_problems = failures or any(r.problems for r in resolutions)
