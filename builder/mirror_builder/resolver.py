@@ -40,6 +40,9 @@ class Closure:
     # Distributions retained as sdists for lack of a wheel: they need a compiler
     # toolchain at install time.
     source_only: list[str] = field(default_factory=list)
+    # Wheels chosen that need a newer glibc than the target's preferred one
+    # (no older wheel exists for that version).
+    newer_glibc: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -69,6 +72,13 @@ class Resolution:
         out = list(self.runtime.problems)
         for filename, closure in self.build_closures.items():
             out.extend(f"[build env of {filename}] {p}" for p in closure.problems)
+        return out
+
+    @property
+    def newer_glibc(self) -> list[str]:
+        out = list(self.runtime.newer_glibc)
+        for filename, closure in self.build_closures.items():
+            out.extend(f"[build env of {filename}] {n}" for n in closure.newer_glibc)
         return out
 
     @property
@@ -264,6 +274,9 @@ class Resolver:
                 result.artifacts[cname] = artifact
                 if artifact.kind == "sdist" and cname not in result.source_only:
                     result.source_only.append(cname)
+                if (artifact.kind == "wheel" and self.target.preferred_tags
+                        and not (artifact.tags & self.target.preferred_tags)):
+                    result.newer_glibc.append(artifact.filename)
                 explore_extras = extras[cname]
             else:
                 artifact = result.artifacts[cname]

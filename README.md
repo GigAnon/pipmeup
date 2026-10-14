@@ -25,8 +25,18 @@ python3 builder/build_bundle.py --target debian13     # one target
 python3 builder/build_bundle.py --archive build/dist/bundle.tar.gz --split-size 4G
 ```
 
-Targets: `py314` (Python 3.14.7), `debian12` (Python 3.11, glibc 2.36), `debian13`
-(Python 3.13, glibc 2.41), `win_amd64:3.14.7`, or `<profile>:<pyver>[:<glibc minor>]`. macOS is not supported.
+Targets: presets `py314` (Python 3.14.7), `debian12` (Python 3.11), `debian13`
+(Python 3.13), plus `win_amd64:3.14.7` by default. Anything else is
+`<profile>:<pyver>[,<pyver>...][:<glibc minor>]`; several Python versions can be built
+in one bundle, e.g. `--target linux_x86_64:3.11,3.12,3.13,3.14.7 --target win_amd64:3.13,3.14.7`.
+macOS is not supported.
+
+**glibc.** Linux targets prefer wheels for glibc 2.31 (Ubuntu 20.04, Debian 11),
+which run on every newer system, and fall back to wheels needing up to glibc 2.41
+(Debian 13) only for distributions that have nothing older. Those wheels are listed
+per target in the build output, `bundle.json` and the report (today: the PySide6
+family needs 2.34, so it does not install on Ubuntu 20.04). Tune with `--glibc` and
+`--glibc-max`.
 
 How it differs from `pip download --platform`: dependencies are resolved by the
 builder against a synthetic marker environment for each target, so
@@ -72,8 +82,8 @@ python3 -m pytest tests
   wheels published at extras.wxpython.org cover Debian up to 11 and Ubuntu up to
   24.04, not Debian 12/13, so Linux targets build the sdist (heavy GTK build;
   `docker/run_test.sh -s wxpython` skips it).
-* **Targets**: `py314` is Python 3.14.7 on glibc 2.36 (the conservative floor,
-  usable on Debian 12 and 13), tested in the `python:3.14-bookworm` image.
+* **py314 is tested on Ubuntu 20.04** (glibc 2.31, Python 3.14 installed through uv in
+  the test image), the oldest system the mirror promises to serve.
 * Dropped `asciidocbuilder`: it pinned `pendulum<3`, and pendulum 2.x cannot be
   built on Python >= 3.12 (its build script imports `distutils`, outside the
   isolated build environment). `pendulum` itself stays as a root and now

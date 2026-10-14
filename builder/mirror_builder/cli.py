@@ -19,7 +19,8 @@ from .client import PyPIClient, RemoteFile
 from .download import download
 from .locks import write_lockfiles
 from .resolver import Resolution, Resolver
-from .targets import DEFAULT_GLIBC_MINOR, DEFAULT_TARGETS, PRESETS, PROFILES, make_target
+from .targets import (DEFAULT_GLIBC_MINOR, DEFAULT_MAX_GLIBC_MINOR, DEFAULT_TARGETS,
+                      PRESETS, PROFILES, make_targets)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE_DIR = REPO_ROOT / "bundle-template"
@@ -92,6 +93,7 @@ def assemble_bundle(bundle_dir: Path, wanted: dict[str, RemoteFile],
                 "resolved": len(r.pins),
                 "source_only": sorted(r.source_only),
                 "unavailable": r.unavailable,
+                "newer_glibc": r.newer_glibc,
             }
             for r in resolutions
         ],
@@ -117,10 +119,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-o", "--output", type=Path, default=REPO_ROOT / "build" / "bundle",
                         help="bundle directory (default: build/bundle)")
     parser.add_argument("--target", action="append", default=[], metavar="TARGET",
-                        help="preset or <profile>:<pyver>[:<glibc minor>], repeatable "
-                             f"(default: {' '.join(DEFAULT_TARGETS)})")
+                        help="preset or <profile>:<pyver>[,<pyver>...][:<glibc minor>], "
+                             "repeatable; several Python versions in one spec build them "
+                             f"together (default: {' '.join(DEFAULT_TARGETS)})")
     parser.add_argument("--glibc", type=int, default=DEFAULT_GLIBC_MINOR, metavar="MINOR",
-                        help=f"default max glibc 2.MINOR for Linux targets (default: {DEFAULT_GLIBC_MINOR})")
+                        help="preferred glibc 2.MINOR for Linux targets: wheels for it are "
+                             f"chosen first (default: {DEFAULT_GLIBC_MINOR}, Ubuntu 20.04)")
+    parser.add_argument("--glibc-max", type=int, default=DEFAULT_MAX_GLIBC_MINOR, metavar="MINOR",
+                        help="newest glibc 2.MINOR accepted when no preferred wheel exists "
+                             f"(default: {DEFAULT_MAX_GLIBC_MINOR}, Debian 13); such wheels are listed")
     parser.add_argument("--with-sdists", action="store_true",
                         help="also fetch the sdist of every wheel-resolved distribution")
     parser.add_argument("--pre", action="store_true", help="allow pre-releases")
@@ -187,7 +194,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        targets = [make_target(spec, args.glibc) for spec in (args.target or DEFAULT_TARGETS)]
+        targets = [t for spec in (args.target or DEFAULT_TARGETS)
+                   for t in make_targets(spec, args.glibc, args.glibc_max)]
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -236,6 +244,10 @@ def main(argv: list[str] | None = None) -> int:
                   f"({len(build_files)} build-environment file(s))")
         if resolution.source_only:
             print(f"  built from source      : {', '.join(sorted(resolution.source_only))}")
+        if resolution.newer_glibc:
+            print(f"  wheels needing glibc > 2.{args.glibc} : {len(resolution.newer_glibc)}")
+            for item in resolution.newer_glibc[:20]:
+                print(f"      ^ {item}")
         if resolution.unavailable:
             print(f"  unavailable (warnings) : {len(resolution.unavailable)}")
             for item in resolution.unavailable[:20]:
@@ -288,6 +300,7 @@ def main(argv: list[str] | None = None) -> int:
                 "source_only": sorted(r.source_only),
                 "build_requires": r.build_requires,
                 "unavailable": r.unavailable,
+                "newer_glibc": r.newer_glibc,
                 "problems": r.problems,
             }
             for r in resolutions

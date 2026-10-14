@@ -1,6 +1,4 @@
-# Build prerequisites for the sdist-only packages, on top of build-essential.
-# (build-essential, python3, python3-dev, python3-venv and python3-pip are installed by the Dockerfile.)
-#
+# Required build prerequisites for the sdist-only packages, on top of build-essential.
 # Deliberately NOT installed: python3-packaging. The bundle tool must cope without it.
 ca-certificates
 pkg-config
@@ -8,17 +6,3 @@ gettext
 libffi-dev
 libssl-dev
 libgmp-dev                      # fastecdsa
-# wxpython (very heavy build)
-libgtk-3-dev
-libwebkit2gtk-4.1-dev
-libgl1-mesa-dev
-libglu1-mesa-dev
-libsdl2-dev
-libnotify-dev
-libxtst-dev
-libjpeg-dev
-libpng-dev
-libtiff-dev
-libsm-dev
-libgstreamer1.0-dev
-libgstreamer-plugins-base1.0-dev

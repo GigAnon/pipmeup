@@ -44,6 +44,10 @@ class Target:
     # Whether a source build is acceptable on this target. True for Linux (a
     # compiler toolchain is assumed); False for Windows (wheels only).
     can_build: bool
+    # Tags of wheels that run on the *preferred* (oldest) glibc. Empty on targets
+    # without a glibc notion. A wheel outside this set but inside tag_rank needs a
+    # newer glibc: accepted only when no preferred wheel exists.
+    preferred_tags: frozenset[Tag] = field(compare=False, repr=False, default=frozenset())
     tag_rank: dict[Tag, int] = field(compare=False, repr=False, default_factory=dict)
 
     @property
@@ -83,36 +87,56 @@ PROFILES: dict[str, dict[str, Any]] = {
     "linux_aarch64": {"machine": "aarch64", "linux_arch": "aarch64"},
 }
 
-# Named presets: '<profile>:<python>[:<glibc minor>]'.
-# Debian 12 ships Python 3.11 / glibc 2.36; Debian 13 ships Python 3.13 / glibc 2.41.
+# Named presets: '<profile>:<python>[,<python>...][:<glibc minor>]'.
+# Debian 12 ships Python 3.11, Debian 13 ships Python 3.13; py314 is the main
+# Python target (3.14.7).
 PRESETS: dict[str, str] = {
-    "debian12": "linux_x86_64:3.11:36",
-    "debian13": "linux_x86_64:3.13:41",
-    # Main Python target (python.org / docker `python:3.14` build). glibc 2.36
-    # (Debian 12) is the conservative floor: the result also works on Debian 13.
-    "py314": "linux_x86_64:3.14.7:36",
+    "debian12": "linux_x86_64:3.11",
+    "debian13": "linux_x86_64:3.13",
+    "py314": "linux_x86_64:3.14.7",
 }
 
 DEFAULT_TARGETS = ["py314", "debian12", "debian13", "win_amd64:3.14.7"]
-DEFAULT_GLIBC_MINOR = 36
+# Preferred glibc: 2.31, shipped by Ubuntu 20.04 and Debian 11. Wheels for it run
+# everywhere newer. Wheels needing up to MAX_GLIBC_MINOR (Debian 13: 2.41) are
+# pulled only when a distribution has nothing older.
+DEFAULT_GLIBC_MINOR = 31
+DEFAULT_MAX_GLIBC_MINOR = 41
 
 
-def make_target(spec: str, default_glibc_minor: int = DEFAULT_GLIBC_MINOR) -> Target:
-    """Build a target from a preset name or '<profile>:<pyversion>[:<glibc minor>]'."""
+def _ranked_tags(python_version: tuple[int, int], platforms: tuple[str, ...]) -> list[Tag]:
+    ordered = list(cpython_tags(python_version=python_version, platforms=platforms))
+    ordered += list(
+        compatible_tags(
+            python_version=python_version,
+            interpreter=f"cp{python_version[0]}{python_version[1]}",
+            platforms=platforms,
+        )
+    )
+    return ordered
+
+
+def make_targets(spec: str, default_glibc_minor: int = DEFAULT_GLIBC_MINOR,
+                 max_glibc_minor: int = DEFAULT_MAX_GLIBC_MINOR) -> list[Target]:
+    """Targets for a spec; a comma-separated version list yields one target each.
+
+    'linux_x86_64:3.11,3.13,3.14.7' -> three targets sharing platform and glibc.
+    """
     preset = spec if spec in PRESETS else None
     spec = PRESETS.get(spec, spec)
 
     parts_spec = spec.split(":")
     if len(parts_spec) < 2 or len(parts_spec) > 3:
         raise ValueError(
-            f"invalid target '{spec}' (expected '<profile>:<pyversion>[:<glibc minor>]' "
-            f"or a preset: {', '.join(PRESETS)})"
+            f"invalid target '{spec}' (expected '<profile>:<pyversion>[,<pyversion>...]"
+            f"[:<glibc minor>]' or a preset: {', '.join(PRESETS)})"
         )
 
-    profile, raw_version = parts_spec[0], parts_spec[1]
-    if profile not in PROFILES:
-        known = ", ".join(sorted(PROFILES))
-        raise ValueError(f"unknown profile '{profile}' (known: {known})")
+    versions = [v for v in parts_spec[1].split(",") if v]
+    if not versions:
+        raise ValueError(f"no Python version in '{spec}'")
+    if preset and len(versions) > 1:
+        raise ValueError(f"preset '{preset}' has a single Python version")
 
     glibc_minor = default_glibc_minor
     if len(parts_spec) == 3:
@@ -120,6 +144,28 @@ def make_target(spec: str, default_glibc_minor: int = DEFAULT_GLIBC_MINOR) -> Ta
             glibc_minor = int(parts_spec[2])
         except ValueError as exc:
             raise ValueError(f"invalid glibc minor '{parts_spec[2]}' in '{spec}'") from exc
+
+    return [
+        _make_one(parts_spec[0], version, glibc_minor, max(max_glibc_minor, glibc_minor),
+                  preset if len(versions) == 1 else None)
+        for version in versions
+    ]
+
+
+def make_target(spec: str, default_glibc_minor: int = DEFAULT_GLIBC_MINOR,
+                max_glibc_minor: int = DEFAULT_MAX_GLIBC_MINOR) -> Target:
+    """Single-target variant of make_targets (raises if the spec expands to several)."""
+    targets = make_targets(spec, default_glibc_minor, max_glibc_minor)
+    if len(targets) != 1:
+        raise ValueError(f"'{spec}' names {len(targets)} targets, expected one")
+    return targets[0]
+
+
+def _make_one(profile: str, raw_version: str, glibc_minor: int, max_glibc_minor: int,
+              preset: str | None) -> Target:
+    if profile not in PROFILES:
+        known = ", ".join(sorted(PROFILES))
+        raise ValueError(f"unknown profile '{profile}' (known: {known})")
 
     version_parts = raw_version.split(".")
     if len(version_parts) < 2:
@@ -134,20 +180,15 @@ def make_target(spec: str, default_glibc_minor: int = DEFAULT_GLIBC_MINOR) -> Ta
     full_version = raw_version if len(version_parts) >= 3 else f"{major}.{minor}.0"
 
     conf = PROFILES[profile]
-    if "linux_arch" in conf:
-        platforms = tuple(linux_platforms(conf["linux_arch"], glibc_minor))
-    else:
-        platforms = tuple(conf["platforms"])
-
     python_version = (major, minor)
-    ordered = list(cpython_tags(python_version=python_version, platforms=platforms))
-    ordered += list(
-        compatible_tags(
-            python_version=python_version,
-            interpreter=f"cp{major}{minor}",
-            platforms=platforms,
-        )
-    )
+    if "linux_arch" in conf:
+        preferred = tuple(linux_platforms(conf["linux_arch"], glibc_minor))
+        platforms = tuple(linux_platforms(conf["linux_arch"], max_glibc_minor))
+    else:
+        preferred = platforms = tuple(conf["platforms"])
+
+    preferred_ranked = _ranked_tags(python_version, preferred)
+    ordered = preferred_ranked + _ranked_tags(python_version, platforms)
     tag_rank: dict[Tag, int] = {}
     for rank, tag in enumerate(ordered):
         tag_rank.setdefault(tag, rank)
@@ -160,5 +201,6 @@ def make_target(spec: str, default_glibc_minor: int = DEFAULT_GLIBC_MINOR) -> Ta
         platforms=platforms,
         marker_env=build_marker_env(profile, conf["machine"], full_version),
         can_build="linux_arch" in conf,
+        preferred_tags=frozenset(preferred_ranked) if "linux_arch" in conf else frozenset(),
         tag_rank=tag_rank,
     )

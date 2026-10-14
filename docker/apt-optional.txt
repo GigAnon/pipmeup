@@ -1,0 +1,17 @@
+# wxpython build prerequisites (very heavy build). Installed one by one; a package
+# missing from the base distribution (e.g. libwebkit2gtk-4.1-dev on Ubuntu 20.04)
+# is skipped instead of failing the image build.
+libgtk-3-dev
+libwebkit2gtk-4.1-dev
+libwebkit2gtk-4.0-dev
+libgl1-mesa-dev
+libglu1-mesa-dev
+libsdl2-dev
+libnotify-dev
+libxtst-dev
+libjpeg-dev
+libpng-dev
+libtiff-dev
+libsm-dev
+libgstreamer1.0-dev
+libgstreamer-plugins-base1.0-dev

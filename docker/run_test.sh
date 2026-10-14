@@ -23,8 +23,9 @@ while getopts "b:s:" opt; do
 done
 shift $((OPTIND - 1))
 
-# py314: the official Python image on Debian 12 (glibc 2.36), Python 3.14.x
-declare -A base=( [py314]=python:3.14-bookworm [debian12]=debian:12 [debian13]=debian:13 )
+# py314 runs on Ubuntu 20.04: glibc 2.31 is the preferred floor of the mirror.
+declare -A base=( [py314]=ubuntu:20.04 [debian12]=debian:12 [debian13]=debian:13 )
+declare -A pyver=( [py314]=3.14 )
 
 targets=("$@")
 if [ ${#targets[@]} -eq 0 ]; then
@@ -40,7 +41,7 @@ status=0
 
 for t in "${targets[@]}"; do
   echo "################ $t ################"
-  docker build -q --build-arg "BASE=${base[$t]}" -t "pipmeup-test:$t" "$repo/docker" >/dev/null
+  docker build -q --build-arg "BASE=${base[$t]}" --build-arg "PYTHON_VERSION=${pyver[$t]:-}" -t "pipmeup-test:$t" "$repo/docker" >/dev/null
   docker run --rm --network none \
     -v "$bundle:/bundle:ro" \
     -v "$repo/docker:/check:ro" \
