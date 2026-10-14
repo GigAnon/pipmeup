@@ -1,0 +1,148 @@
+# Root packages of the local PyPI mirror (one requirement per line, PEP 508).
+# Originally generated from main.py: 133 entries -> 127 unique after PEP 503
+# normalisation. Duplicates removed: packaging, paramiko, psutil, pycryptodome,
+# scapy, setuptools.
+#
+# Transitive dependencies are NOT listed here: the builder resolves them per
+# target, with correct marker evaluation, and also follows the build
+# requirements (PEP 518) of every sdist it has to ship.
+#
+# Annotations:
+#   [SDIST]  no wheel on PyPI: built from source at install time (Linux only;
+#            Windows targets skip these with a warning)
+#   [PLAT]   platform-restricted (expressed with an environment marker)
+#   [OLD]    obsolete or unmaintained
+#
+# Pruned in the cleanup: dilithium and pqcryptography (absent from PyPI),
+# ordereddict and pathlib2 (Python 2 relics, replaced by the standard library).
+
+# --- No reservations ---
+adparser
+aenum
+argcomplete
+asciidoc3
+asciidocbuilder
+Automat
+beautifulsoup4
+bitarray
+black
+certifi
+chardet
+colorama
+constantly
+coverage
+crccheck
+cryptography
+cycler
+cython
+dash
+decorator
+Deprecated
+docx2pdf
+docxtpl
+ecdsa
+enforce-typing
+et-xmlfile
+fabric
+Faker
+filelock
+fonttools
+gcovr
+GitPython
+glfw
+hdlcontroller
+hidapi
+hyperlink
+imgui-bundle
+incremental
+iniconfig
+invoke
+isodate
+isort
+Jinja2
+jmespath
+jsonschema
+kiwisolver
+libcst
+lief
+lxml
+mapfile-parser
+MarkupSafe
+matplotlib
+meson
+miniircd
+ndjson
+networkx
+numpy
+opencv-python
+openpyxl
+packaging
+pandas
+paramiko
+Pillow
+pip
+platformdirs
+plotly
+prompt-toolkit
+Protego
+psutil
+psygnal
+py7zr
+pyasn1
+pycparser
+pycryptodome
+pycryptodomex
+pydantic
+pyelftools
+pygdbmi
+pyinstaller
+pylfsr
+pylint
+pyOpenSSL
+pyserial
+PySide6
+pytest
+pytest-subtests
+pytest-xdist
+python-dateutil
+python-jenkins
+python_statemachine
+pytz
+PyYAML
+queuelib
+requests-oauthlib
+rpds-py
+scapy
+Scrapy
+setuptools
+smmap
+subprocess-tee
+tabulate
+tcms.api
+telnetlib3
+tenacity
+texttable
+tqdm
+Twisted
+unittest-parallel
+urllib3
+wheel
+zeep
+
+# --- To review ---
+atomicwrites             # [SDIST][OLD] sdist only, unmaintained
+bitfields                # [SDIST] sdist only -- check whether bitstruct/ctypes was meant
+crcmod                   # [SDIST][OLD] sdist only, unmaintained -- crccheck covers the same need
+fastecdsa                # [SDIST] no Windows wheel (needs GMP); Linux builds need libgmp-dev
+fuckit                   # [SDIST][OLD] sdist only, joke package
+inflate                  # [SDIST][OLD] sdist only, unmaintained -- check whether inflate64 was meant
+multi-key-dict           # [SDIST]
+netifaces                # [SDIST][OLD] sdist only, unmaintained -- consider psutil.net_if_addrs()
+pendulum                 # [SDIST] resolved to 2.x by a transitive constraint, no py3.13 wheel
+PySPX                    # [SDIST] sdist only, C compilation required
+pywin32; sys_platform == "win32"   # [PLAT] Windows only
+wxpython                 # [SDIST] no Linux wheel on PyPI: very heavy GTK build (Windows has wheels)
+
+# --- Disabled in the original script ---
+# imgui[full]   # abandoned project (replaced by imgui-bundle)
+# PySide2       # superseded by PySide6
