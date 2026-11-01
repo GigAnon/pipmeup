@@ -97,3 +97,8 @@ python3 -m pytest tests
   built on Python >= 3.12 (its build script imports `distutils`, outside the
   isolated build environment). `pendulum` itself stays as a root and now
   resolves to 3.x, which ships wheels.
+* **playwright** installs from the mirror, but only the driver: the browsers
+  (Chromium, Firefox, WebKit) are not on PyPI. `playwright install` downloads them
+  from Playwright's CDN, so on an air-gapped machine they must be brought over
+  separately (copy a `PLAYWRIGHT_BROWSERS_PATH` populated elsewhere, or point
+  Playwright at a system browser with `executable_path`).

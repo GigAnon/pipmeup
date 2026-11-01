@@ -185,6 +185,9 @@ requests
 pexpect
 typing-extensions
 protobuf
+# Browser automation and PDF
+playwright               # driver only: browsers are NOT on PyPI (see README)
+pymupdf
 
 # --- Disabled in the original script ---
 # imgui[full]   # abandoned project (replaced by imgui-bundle)
